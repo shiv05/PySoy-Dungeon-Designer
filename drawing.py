@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import font
+from tkinter import filedialog
 
 import math
 import time
@@ -30,7 +31,7 @@ class DungeonDesigner:
     root = mainframe =  canvas =  canvas_hscroll =  canvas_vscroll = None
     options_frame = mode_frame = mode_dropdown = roomoptions_frame = None
     mat_dropdown = mouseover_circle = dooroptions_frame = door_dropdown = None
-    console = console_font = None
+    console = console_font = fileooptions_frame = None
     #current room's key
     cur_rk = None
     #current room height
@@ -90,7 +91,7 @@ class DungeonDesigner:
         self.cur_dr2.set('1')
 
         #add the main frame
-        self.mainframe = ttk.Frame(self.root, width=900, height=600)
+        self.mainframe = ttk.Frame(self.root, width=900, height=650)
         self.mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
 
 
@@ -156,7 +157,7 @@ class DungeonDesigner:
         self.roomoptions_frame = ttk.Labelframe(self.options_frame, 
                                         text = "Room Options", padding = "12 5 5 5")
         self.roomoptions_frame.grid(column=1, row=2, sticky= (W, E))
-        self.roomoptions_frame.configure(width = 200, height = 400)
+        self.roomoptions_frame.configure(width = 200, height = 300)
 
         #room options labels
         ttk.Label(self.roomoptions_frame, text="room key:").grid(column=1, 
@@ -202,9 +203,9 @@ class DungeonDesigner:
 
         #frame for add door mode's options
         self.dooroptions_frame = ttk.Labelframe(self.options_frame, 
-                                        text = "Door Options", padding = "15 5")
+                                        text = "Door Options", padding = "5 5")
         self.dooroptions_frame.grid(column=1, row=2, sticky= (W, E))
-        self.dooroptions_frame.configure(width = 200, height = 400)
+        self.dooroptions_frame.configure(width = 200, height = 300)
 
         #door options labels
         ttk.Label(self.dooroptions_frame, text="height").grid(column=1, 
@@ -230,19 +231,19 @@ class DungeonDesigner:
 
 
         #door options textboxes
-        ttk.Entry(self.dooroptions_frame, width=2, 
+        ttk.Entry(self.dooroptions_frame, width=3, 
                         textvariable=self.cur_dh).grid(column=4, row=1, 
                                                 sticky = E, padx=0, pady=2)
-        ttk.Entry(self.dooroptions_frame, width=2, 
+        ttk.Entry(self.dooroptions_frame, width=3, 
                         textvariable=self.cur_ddx).grid(column=3, row=2, 
                                                 sticky = E, padx=0, pady=2)
-        ttk.Entry(self.dooroptions_frame, width=2, 
+        ttk.Entry(self.dooroptions_frame, width=3, 
                         textvariable=self.cur_ddy).grid(column=5, row=2, 
                                                 sticky = E, padx=0, pady=2)
-        ttk.Entry(self.dooroptions_frame, width=2, 
+        ttk.Entry(self.dooroptions_frame, width=3, 
                         textvariable=self.cur_dr1).grid(column=3, row=3, 
                                                 sticky = E, padx=0, pady=2)
-        ttk.Entry(self.dooroptions_frame, width=2, 
+        ttk.Entry(self.dooroptions_frame, width=3, 
                         textvariable=self.cur_dr2).grid(column=5, row=3, 
                                                 sticky = E, padx=0, pady=2)
 
@@ -269,17 +270,36 @@ class DungeonDesigner:
                      command=self.delete_door, width=6).grid(column=3, row=5, 
                                         sticky=S, padx=1, pady=2, columnspan=3)
 
-
         #disable/hide add door mode's options
         self.dooroptions_frame.grid_remove()
         
 
         #add text widget for console
         self.console_font = font.Font(family="Consolas", size=8)
-        self.console = Text(self.options_frame, width=22, height=25, 
+        self.console = Text(self.options_frame, width=22, height=21, 
                                                         font=self.console_font)
         self.console.grid(row=3, column=1, padx=4, pady=4, sticky=(W, E))
         self.console.insert(END, "             CONSOLE OUTPUT\n\n\n")
+
+        #frame for file options. This will have options to load/save/export
+        self.fileoptions_frame = ttk.Labelframe(self.options_frame, 
+                                        text="File Options", padding = "2 2")
+        self.fileoptions_frame.grid(column=1, row=4, sticky= (W, E))
+        self.fileoptions_frame.configure(width = 200, height = 50)
+
+        #load file button door button
+        ttk.Button(self.fileoptions_frame, text="Load", 
+                    command=self.load_file, width=6).grid(column=1, row=1, 
+                                            sticky=(N,W,E,S), padx=2, pady=2)
+        #save file button door button
+        ttk.Button(self.fileoptions_frame, text="Save", 
+                    command=self.save_file, width=6).grid(column=2, row=1, 
+                                            sticky=(N,W,E,S), padx=2, pady=2)
+        #export file button door button
+        ttk.Button(self.fileoptions_frame, text="Export", 
+                    command=self.export_file, width=6).grid(column=3, row=1,
+                                            sticky=(N,W,E,S), padx=2, pady=2)
+        
 
         #set material dropdown values
         self.mat_dropdown['values'] = ('aliceblue',
@@ -628,13 +648,8 @@ class DungeonDesigner:
                     #set current rect index
                     self.cur_rect_index = (self.rectangles.__len__() -1)
                 else:
-                    ts = time.time()
-                    st = datetime.datetime.fromtimestamp(ts).strftime(
-                                                        '%Y-%m-%d %H:%M:%S')
-                    self.console.insert(END, str(st)+">>room intersects with "+
-                                "exsting room or has zero width/depth. No " +
-                                "room added.\n\n")
-                    self.console.see(END)
+                    self.write_to_console("room intersects with exisitng room"+
+                                " or has zero width/depth. No room added.")
                 self.first_click = False
                 self.canvas.delete(self.first_click_circle)
             #if this is the first click for making a room
@@ -682,12 +697,9 @@ class DungeonDesigner:
                     self.door_dropdown['values'] = dropdown_values
                     self.door_dropdown.current(dropdown_values.__len__()-1)
                 else:
-                    ts = time.time()
-                    st = datetime.datetime.fromtimestamp(ts).strftime(
-                                                        '%Y-%m-%d %H:%M:%S')
-                    self.console.insert(END, str(st)+">>the door added " +
-                                            "doesn't lie on the common wall " +
-                                            "of 2 rooms\n\n")
+                    self.write_to_console("the door specidfied doesn't lie " +
+                                            " on the common wall of 2 rooms." +
+                                            " No door added.")
                     self.console.see(END)
                 self.first_click = False
                 self.canvas.delete(self.first_click_circle)
@@ -861,6 +873,95 @@ class DungeonDesigner:
             self.door_dropdown['values'] = dropdown_values
             self.door_dropdown.current(dropdown_values.__len__()-1)
 
+    def load_file(self, *args):
+        filename = filedialog.askopenfilename()
+        if not filename:
+            return
+        #delete existing rooms and doors to load new ones
+        for rect in self.rectangles:
+            self.canvas.delete(rect[0])
+        for door in self.doors:
+            self.canvas.delete(door[0])
+        del self.rectangles[:]
+        del self.doors[:]
+        #variable to control whether we are looking at rooms or doors
+        state = 0
+        fh = open(filename, "r")
+        for line in fh:
+            if state == 0:
+                if line == "roomsbegin\n":
+                    state = 1
+                else:
+                    continue
+            elif state == 1:
+                if line == "roomsend\n":
+                    state = 2
+                else:
+                    line = line.rstrip()
+                    contents = line.split(' ')
+                    #add rectangle
+                    self.rectangles.append([self.canvas.create_rectangle(
+                                float(contents[0]), float(contents[1]), 
+                                float(contents[2]), float(contents[3]), 
+                                outline = "blue"), contents[4], 
+                                contents[5], contents[6], int(contents[7])
+                                            ])
+            elif state == 2:
+                if line == "doorsbegin\n":
+                    state = 3
+                else:
+                    continue
+            elif state == 3:
+                if line == "doorsend\n":
+                    break
+                else:
+                    line = line.rstrip()
+                    contents = line.split(' ')
+                    #add door
+                    self.doors.append([self.canvas.create_line(
+                                float(contents[0]), float(contents[1]), 
+                                float(contents[2]), float(contents[3]), 
+                                fill = 'red'), contents[4],contents[5], 
+                                contents[6], contents[7], contents[8]
+                                            ])
+        fh.close()
+        self.write_to_console("file loaded successfully!")
+
+    def save_file(self, *args):
+        fh = filedialog.asksaveasfile(mode='w', defaultextension=".txt")
+        if fh is None:
+            return
+        #write rooms to file
+        fh.write("roomsbegin\n")
+        for rect in self.rectangles:
+            coords = self.canvas.coords(rect[0])
+            fh.write(str(coords[0]) + " " + str(coords[1]) + " " + 
+                            str(coords[2]) + " " + str(coords[3]) + " " + 
+                            rect[1] + " " + rect[2] + " " + rect[3] + " " + 
+                            str(rect[4]) + "\n")
+        fh.write("roomsend\n")
+        #write doors to file
+        fh.write("doorsbegin\n")
+        for door in self.doors:
+            coords = self.canvas.coords(door[0])
+            fh.write(str(coords[0]) + " " + str(coords[1]) + " " + 
+                            str(coords[2]) + " " + str(coords[3]) + " " + 
+                            door[1] + " " + door[2] + " " + door[3] + " " + 
+                            door[4] + " " + door[5] + "\n")
+        fh.write("doorsend\n")
+        fh.close()
+        self.write_to_console("file saved successfully!")
+
+
+    def export_file(self, *args):
+        print("yo")
+
+    def write_to_console(self, message):
+        ts = time.time()
+        st = datetime.datetime.fromtimestamp(ts).strftime(
+                                        '%Y-%m-%d %H:%M:%S')
+        self.console.insert(END, str(st)+">>"+message+"\n\n")
+        self.console.see(END)
 
 
     def draw(self):
