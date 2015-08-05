@@ -9,7 +9,7 @@ import datetime
 
 class DungeonDesigner:
 
-    grid_width = None
+    grid_width = 0
     grid_height = 0
     grid_unitsize = 0
     #point for first click
@@ -31,7 +31,7 @@ class DungeonDesigner:
     root = mainframe =  canvas =  canvas_hscroll =  canvas_vscroll = None
     options_frame = mode_frame = mode_dropdown = roomoptions_frame = None
     mat_dropdown = mouseover_circle = dooroptions_frame = door_dropdown = None
-    console = console_font = fileooptions_frame = None
+    console = console_font = fileooptions_frame = export_popup = None
     #current room's key
     cur_rk = None
     #current room height
@@ -56,6 +56,9 @@ class DungeonDesigner:
     cur_dr2 = None
     #current door
     cur_door = None
+    #floor height
+    h_str = None
+    floor_height = 0.0
     
 
     def __init__(self, gw, gh, gu):
@@ -79,9 +82,10 @@ class DungeonDesigner:
         self.cur_dr1 = StringVar()
         self.cur_dr2 = StringVar()
         self.cur_door = StringVar()
+        self.h_str = StringVar()
         self.cur_rk.set('room1')
         self.cur_rh.set('10')
-        self.cur_ww.set('0.5')
+        self.cur_ww.set('1.0')
         self.room1key.set('')
         self.room2key.set('')
         self.cur_dh.set('0')
@@ -89,6 +93,7 @@ class DungeonDesigner:
         self.cur_ddy.set('8')
         self.cur_dr1.set('1')
         self.cur_dr2.set('1')
+        self.h_str.set('0.0')
 
         #add the main frame
         self.mainframe = ttk.Frame(self.root, width=900, height=650)
@@ -126,7 +131,8 @@ class DungeonDesigner:
             i+=1
 
         #cirle to be drawn at the grid point closest to mouse position
-        self.mouseover_circle = self.canvas.create_oval(-2, -2, 2, 2, fill = "blue")
+        self.mouseover_circle = self.canvas.create_oval(-2, -2, 2, 2, 
+                                                                fill="blue")
 
         #add mouse binding to canvas
         self.canvas.bind("<Button-1>", self.mouseclick)
@@ -155,7 +161,7 @@ class DungeonDesigner:
 
         #room options frame
         self.roomoptions_frame = ttk.Labelframe(self.options_frame, 
-                                        text = "Room Options", padding = "12 5 5 5")
+                                        text="Room Options",padding="12 5 5 5")
         self.roomoptions_frame.grid(column=1, row=2, sticky= (W, E))
         self.roomoptions_frame.configure(width = 200, height = 300)
 
@@ -449,7 +455,7 @@ class DungeonDesigner:
                                         'whitesmoke',
                                         'yellow',
                                         'yellowgreen')
-        self.mat_dropdown.current(0)
+        self.mat_dropdown.current(10)
 
     def distance_sq(self, p1, p2):
         return (p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1])
@@ -495,9 +501,9 @@ class DungeonDesigner:
             return False
         for rect in self.rectangles:
             if (self.canvas.coords(rect[0])[0] < p2[0]) and (
-                                        self.canvas.coords(rect[0])[2] > p1[0]) and (
-                                        self.canvas.coords(rect[0])[1] < p2[1]) and (
-                                        self.canvas.coords(rect[0])[3] > p1[1]):
+                                self.canvas.coords(rect[0])[2] > p1[0]) and (
+                                self.canvas.coords(rect[0])[1] < p2[1]) and (
+                                self.canvas.coords(rect[0])[3] > p1[1]):
                 return False
         return True
 
@@ -508,9 +514,9 @@ class DungeonDesigner:
     def in_rectangles(self, point):
         for rect in self.rectangles:
             if (point[0]>self.canvas.coords(rect[0])[0]) and (
-                                        point[0]<self.canvas.coords(rect[0])[2]) and (
-                                        point[1]>self.canvas.coords(rect[0])[1]) and (
-                                        point[1]<self.canvas.coords(rect[0])[3]):
+                                point[0]<self.canvas.coords(rect[0])[2]) and (
+                                point[1]>self.canvas.coords(rect[0])[1]) and (
+                                point[1]<self.canvas.coords(rect[0])[3]):
                 return self.rectangles.index(rect)
         return -1
 
@@ -524,14 +530,14 @@ class DungeonDesigner:
             #door coordinates
             dc = self.canvas.coords(door[0])
             #if door is vertical
-            if (dc[0]==dc[2]) and (point[0]<dc[0]+5) and (point[0]>dc[0]-5) and (
-                        point[1]>=min(dc[1], dc[3])) and (
-                        point[1]<=max(dc[1], dc[3])):
+            if (dc[0]==dc[2]) and (point[0]<dc[0]+5) and (
+                    point[0]>dc[0]-5) and (point[1]>=min(dc[1], dc[3])) and (
+                    point[1]<=max(dc[1], dc[3])):
                 dropdown_values.append('door '+str(self.doors.index(door)))
             #if door is horizontal
-            elif (dc[1]==dc[3]) and (point[1]<dc[1]+5) and (point[1]>dc[1]-5) and (
-                        point[0]>=min(dc[0], dc[2])) and (
-                        point[0]<=max(dc[0], dc[2])):
+            elif (dc[1]==dc[3]) and (point[1]<dc[1]+5) and (
+                    point[1]>dc[1]-5) and (point[0]>=min(dc[0], dc[2])) and (
+                    point[0]<=max(dc[0], dc[2])):
                 dropdown_values.append('door '+str(self.doors.index(door)))
         return dropdown_values
 
@@ -551,7 +557,7 @@ class DungeonDesigner:
                     if (line[0][0]==rp[2]) and (line[0][1]>=rp[1]) and (
                             line[0][1]<=rp[3]) and (line[1][0]==rp[2]) and (
                             line[1][1]>=rp[1]) and (line[1][1]<=rp[3]):
-                        return True
+                        return (i,j,1)
 
             #if 2 endpoints of line lie of rect.x2 edge
             if (line[0][0]==rp[2]) and (line[0][1]>=rp[1]) and (
@@ -563,7 +569,7 @@ class DungeonDesigner:
                     if (line[0][0]==rp[0]) and (line[0][1]>=rp[1]) and (
                             line[0][1]<=rp[3]) and (line[1][0]==rp[0]) and (
                             line[1][1]>=rp[1]) and (line[1][1]<=rp[3]):
-                        return True
+                        return (i,j,2)
 
             #if 2 endpoints of line lie of rect.y1 edge
             if (line[0][1]==rp[1]) and (line[0][0]>=rp[0]) and (
@@ -575,7 +581,7 @@ class DungeonDesigner:
                     if (line[0][1]==rp[3]) and (line[0][0]>=rp[0]) and (
                             line[0][0]<=rp[2]) and (line[1][1]==rp[3]) and (
                             line[1][0]>=rp[0]) and (line[1][0]<=rp[2]):
-                        return True
+                        return (i,j,3)
 
             #if 2 endpoints of line lie of rect.y2 edge
             if (line[0][1]==rp[3]) and (line[0][0]>=rp[0]) and (
@@ -587,14 +593,15 @@ class DungeonDesigner:
                     if (line[0][1]==rp[1]) and (line[0][0]>=rp[0]) and (
                             line[0][0]<=rp[2]) and (line[1][1]==rp[1]) and (
                             line[1][0]>=rp[0]) and (line[1][0]<=rp[2]):
-                        return True
-        return False
+                        return (i,j,4)
+        return None
 
 
     #deslects a rectangle if one is selected
     def deselect_rectangle(self):
         if self.cur_rect_index != -1:
-            self.canvas.itemconfig(self.rectangles[self.cur_rect_index][0], fill = '')
+            self.canvas.itemconfig(self.rectangles[self.cur_rect_index][0], 
+                                                                    fill = '')
             self.cur_rect_index = -1
 
 
@@ -680,10 +687,13 @@ class DungeonDesigner:
                 self.canvas.delete(self.first_click_circle)
             #if this is the 2nd click for making a door
             elif self.first_click:
-                if self.on_walls(( self.point1, near_gridpoint )):
-                    self.doors.append([self.canvas.create_line(self.point1[0], 
-                                    self.point1[1], near_gridpoint[0], 
-                                    near_gridpoint[1], fill='red', width = 4), 
+                if self.on_walls(( self.point1, near_gridpoint )) != None:
+                    self.doors.append([self.canvas.create_line(
+                                    min(self.point1[0], near_gridpoint[0]), 
+                                    min(self.point1[1], near_gridpoint[1]), 
+                                    max(self.point1[0], near_gridpoint[0]), 
+                                    max(self.point1[1], near_gridpoint[1]), 
+                                    fill='red', width = 4), 
                                     self.cur_dh.get(), self.cur_ddx.get(), 
                                     self.cur_ddy.get(), self.cur_dr1.get(), 
                                     self.cur_dr2.get()
@@ -873,6 +883,7 @@ class DungeonDesigner:
             self.door_dropdown['values'] = dropdown_values
             self.door_dropdown.current(dropdown_values.__len__()-1)
 
+
     def load_file(self, *args):
         filename = filedialog.askopenfilename()
         if not filename:
@@ -889,13 +900,35 @@ class DungeonDesigner:
         fh = open(filename, "r")
         for line in fh:
             if state == 0:
-                if line == "roomsbegin\n":
+                if line == "initialparams\n":
+                    continue
+                else:
+                    line = line.rstrip()
+                    contents = line.split(' ')
+                    self.grid_width = int(contents[0])
+                    self.grid_height = int(contents[1])
+                    self.grid_unitsize = float(contents[2])
+                    self.canvas.configure(scrollregion=(0, 0, 
+                                    20*self.grid_width, 20*self.grid_height))
+                    self.canvas.delete("all")
                     state = 1
+                    #draw grid
+                    i=0
+                    j=0
+                    while i<=self.grid_width:
+                        j=0
+                        while j<=self.grid_height:
+                            self.canvas.create_oval(20*i-2, 20*j-2, 20*i+2, 20*j+2)
+                            j+=1
+                        i+=1
+            elif state == 1:
+                if line == "roomsbegin\n":
+                    state = 2
                 else:
                     continue
-            elif state == 1:
+            elif state == 2:
                 if line == "roomsend\n":
-                    state = 2
+                    state = 3
                 else:
                     line = line.rstrip()
                     contents = line.split(' ')
@@ -906,12 +939,12 @@ class DungeonDesigner:
                                 outline = "blue"), contents[4], 
                                 contents[5], contents[6], int(contents[7])
                                             ])
-            elif state == 2:
+            elif state == 3:
                 if line == "doorsbegin\n":
-                    state = 3
+                    state = 4
                 else:
                     continue
-            elif state == 3:
+            elif state == 4:
                 if line == "doorsend\n":
                     break
                 else:
@@ -927,10 +960,15 @@ class DungeonDesigner:
         fh.close()
         self.write_to_console("file loaded successfully!")
 
+
     def save_file(self, *args):
         fh = filedialog.asksaveasfile(mode='w', defaultextension=".txt")
         if fh is None:
             return
+        #write grid_Width, grid_height and grid_unitsize to file
+        fh.write("initialparams\n")
+        fh.write(str(self.grid_width) + " " + str(self.grid_height) + " " + 
+                                                str(self.grid_unitsize) + "\n")
         #write rooms to file
         fh.write("roomsbegin\n")
         for rect in self.rectangles:
@@ -953,8 +991,238 @@ class DungeonDesigner:
         self.write_to_console("file saved successfully!")
 
 
+    def export_dungeon(self, *args):
+        try:
+            self.floor_height = float(self.h_str.get())
+            self.export_popup.destroy()
+
+            fh = filedialog.asksaveasfile(mode='w', defaultextension=".py")
+            if fh is None:
+                return
+
+            #add initial comment
+            fh.write("#file created using PySoy Dungeon Desinger\n")
+            fh.write("#https://github.com/shiv05/PySoy-Dungeon-Designer\n")
+
+            #add starting statements
+            fh.write("import soy\n")
+            fh.write("from time import sleep\n")
+            fh.write("\n")
+            fh.write("dungeon = soy.scenes.Dungeon()\n")
+            fh.write("client = soy.Client()\n\n")
+            fh.write("camera = soy.bodies.Camera((0,0,0))\n\n")
+
+            roomkeyarray = []
+            roomsizearray = []
+            roomwallwidtharray = []
+            roomposarray = []
+            roommatarray = []
+        
+            #set up arrays for roomkeys, roomsize, wallwidth and roomposition
+            for  rect in self.rectangles:
+                #append to room key
+                roomkeyarray.append(rect[1])
+
+                coords = self.canvas.coords(rect[0])
+                #append to room size
+                roomsizearray.append((coords[2]-coords[0])/20*
+                                                            self.grid_unitsize)
+                roomsizearray.append(float(rect[2]))
+                roomsizearray.append((coords[3]-coords[1])/20*
+                                                            self.grid_unitsize)
+
+                #append to wall width
+                roomwallwidtharray.append(float(rect[3]))
+
+                #append to room position
+                roomposarray.append((coords[0]+coords[2])/2/20*
+                                                            self.grid_unitsize)
+                roomposarray.append(self.floor_height+(float(rect[2])/2))
+                roomposarray.append((coords[1]+coords[3])/2/20*
+                                                            self.grid_unitsize)
+
+                #append to room material
+                roommatarray.append(self.mat_dropdown['values'][rect[4]])
+
+            #right the arrays to file
+            fh.write("roomkeyarray = ")
+            fh.write(str(roomkeyarray))
+            fh.write("\n")
+            fh.write("roomsizearray = ")
+            fh.write(str(roomsizearray))
+            fh.write("\n")
+            fh.write("roomwallwidtharray = ")
+            fh.write(str(roomwallwidtharray))
+            fh.write("\n")
+            fh.write("roomposarray = ")
+            fh.write(str(roomposarray))
+            fh.write("\n")
+            fh.write("roommatarray = ")
+            fh.write(str(roommatarray))
+            fh.write("\n\n")
+
+            #write loop to add rooms to file
+            fh.write("for i in range(0," + str(self.rectangles.__len__())+"):"+
+                            "\n    dungeon.rooms[roomkeyarray[i]] = soy.sce"+
+                                "nes.Room(\n            soy.atoms.Size((rooms"+
+                                "izearray[3*i], \n            roomsizearray[3"+
+                                "*i+1], roomsizearray[3*i+2])), \n           "+
+                                " roomwallwidtharray[i], roomposarray[3*i],\n"+
+                                "            roomposarray[3*i+1], roomposarra"+
+                                "y[3*i+2])\n")
+            fh.write("    dungeon.rooms[roomkeyarray[i]].material = ")
+            fh.write("soy.materials.Colored(roommatarray[i])\n")
+            fh.write("    dungeon.rooms[roomkeyarray[i]]['light1'] = ")
+            #TODO modify to get lights from GUI/room dimensions
+            fh.write("soy.bodies.Light((4,4,4))\n")
+            fh.write("    dungeon.rooms[roomkeyarray[i]]['light2'] = ")
+            fh.write("soy.bodies.Light((-4,4,-4))\n\n")
+
+            #set up parameter arrays to add doors
+            room1array = []
+            room2array = []
+            doorXarray = []
+            doorYarray = []
+            doorWarray = []
+            doorHarray = []
+
+            for door in self.doors:
+                coords = self.canvas.coords(door[0])
+                doorflag = self.on_walls((
+                                            (coords[0], coords[1]), 
+                                            (coords[2], coords[3])
+                                        ))
+                #if door is not present on common walls, continue
+                if doorflag == None:
+                    continue
+                #set up door arrays
+                else:
+                    room1array.append(roomkeyarray[doorflag[0]])
+                    room2array.append(roomkeyarray[doorflag[1]])
+                    doorWarray.append(float(door[2]))
+                    doorHarray.append(float(door[3]))
+                    doorYarray.append(float(door[1]))
+                    r1 = float(door[4])
+                    r2 = float(door[5])
+                    doorcenter = ((r1*coords[2]+r2*coords[0])/(r1+r2), 
+                                            (r1*coords[3]+r2*coords[1])/(r1+r2))
+                    r1coords = self.canvas.coords(
+                                            self.rectangles[doorflag[0]][0])
+                    r2coords = self.canvas.coords(
+                                            self.rectangles[doorflag[1]][0])
+                    #left wall of room1, right wall of room2
+                    if doorflag[2] == 1:
+                        commoncenter = ( max(r1coords[1], r2coords[1]) + 
+                                            min(r1coords[3], r2coords[3]) )/2
+                        doorXarray.append((commoncenter-doorcenter[1])/20*
+                                                            self.grid_unitsize)
+                    #right wall of room1, left wall of room2
+                    elif doorflag[2] == 2:
+                        commoncenter = ( max(r1coords[1], r2coords[1]) + 
+                                            min(r1coords[3], r2coords[3]) )/2
+                        doorXarray.append((doorcenter[1]-commoncenter)/20*
+                                                            self.grid_unitsize)
+                    #top (less positive z) wall of room1, bottom wall of room2
+                    elif doorflag[2] == 3:
+                        commoncenter = ( max(r1coords[0], r2coords[0]) + 
+                                            min(r1coords[2], r2coords[2]) )/2
+                        doorXarray.append((doorcenter[0]-commoncenter)/20*
+                                                            self.grid_unitsize)
+                    #bottom (more positive z) wall of room1, top wall of room2
+                    elif doorflag[2] == 4:
+                        commoncenter = ( max(r1coords[0], r2coords[0]) + 
+                                            min(r1coords[2], r2coords[2]) )/2
+                        doorXarray.append((commoncenter-doorcenter[0])/20*
+                                                            self.grid_unitsize)
+
+            #right the arrays for doors to file
+            fh.write("room1array = ")
+            fh.write(str(room1array))
+            fh.write("\n")
+            fh.write("room2array = ")
+            fh.write(str(room2array))
+            fh.write("\n")
+            fh.write("doorXarray = ")
+            fh.write(str(doorXarray))
+            fh.write("\n")
+            fh.write("doorYarray = ")
+            fh.write(str(doorYarray))
+            fh.write("\n")
+            fh.write("doorWarray = ")
+            fh.write(str(doorWarray))
+            fh.write("\n")
+            fh.write("doorHarray = ")
+            fh.write(str(doorHarray))
+            fh.write("\n\n")
+
+            #write loop to add doors to file
+            fh.write("for i in range(0," + str(doorWarray.__len__())+"):"+
+                        "\n    dungeon.connect_rooms(dungeon.rooms[room1a"+
+                        "rray[i]], \n                            dungeon."+
+                        "rooms[room2array[i]], \n                        "+
+                        "    doorXarray[i], doorYarray[i], \n            "+
+                        "                doorWarray[i], doorHarray[i])\n\n")
+
+            #add camera
+            fh.write("dungeon.rooms[roomkeyarray[0]]['cam'] = camera\n")
+            fh.write("client.window.append(soy.widgets.Projector(camera))\n\n")
+
+            #add motion
+            fh.write("# Events init\n")
+            fh.write("soy.events.KeyPress.init()\n")
+            fh.write("soy.events.KeyRelease.init()\n")
+            fh.write("soy.events.Motion.init()\n")
+            fh.write("#Forces\n")
+            fh.write("Rforce = soy.atoms.Vector((10, 0, 0))\n")
+            fh.write("Lforce = soy.atoms.Vector((-10, 0, 0))\n")
+            fh.write("Uforce = soy.atoms.Vector((0, 10, 0))\n")
+            fh.write("Dforce = soy.atoms.Vector((0, -10, 0))\n")
+            fh.write("Fforce = soy.atoms.Vector((0, 0, -20))\n")
+            fh.write("Bforce = soy.atoms.Vector((0, 0, 20))\n")
+            fh.write("# Actions\n")
+            fh.write("RThrust = soy.actions.Thrust(camera, Rforce)\n")
+            fh.write("LThrust = soy.actions.Thrust(camera, Lforce)\n")
+            fh.write("FThrust = soy.actions.Thrust(camera, Fforce)\n")
+            fh.write("BThrust = soy.actions.Thrust(camera, Bforce)\n")
+            fh.write("UThrust = soy.actions.Thrust(camera, Uforce)\n")
+            fh.write("DThrust = soy.actions.Thrust(camera, Dforce)\n")
+            fh.write("# Events\n")
+            fh.write("soy.events.KeyPress.addAction(\"D\", RThrust)\n")
+            fh.write("soy.events.KeyPress.addAction(\"A\", LThrust)\n")
+            fh.write("soy.events.KeyPress.addAction(\"W\", FThrust)\n")
+            fh.write("soy.events.KeyPress.addAction(\"S\", BThrust)\n")
+            fh.write("soy.events.KeyPress.addAction(\"Up\", UThrust)\n")
+            fh.write("soy.events.KeyPress.addAction(\"Down\", DThrust)\n\n")
+
+            #add main loop
+            fh.write("if __name__ == '__main__':\n")
+            fh.write("    while client:\n")
+            fh.write("        sleep(.1)\n")
+
+
+            #close the file
+            fh.close()
+            self.write_to_console("file exported successfully")
+
+
+        except ValueError:
+            self.write_to_console("incorrect value for room height entered")
+
+
+
     def export_file(self, *args):
-        print("yo")
+        self.export_popup = Toplevel()
+        self.export_popup.title('EXPORT')
+        ttk.Label(self.export_popup, text="enter floor height").grid(column=1, 
+                                    row=1, sticky=(N,W,E,S), padx=25, pady=5)
+        height_entry = ttk.Entry(self.export_popup, width=5, 
+                                                    textvariable=self.h_str)
+        height_entry.grid(column=1, row=2, padx=25, pady=5)
+        ttk.Button(self.export_popup, text="Export", 
+                                command=self.export_dungeon).grid(column=1, 
+                                            row=3, sticky=S, padx=25, pady=5)
+        self.export_popup.bind('<Return>', self.export_dungeon)
+
 
     def write_to_console(self, message):
         ts = time.time()
