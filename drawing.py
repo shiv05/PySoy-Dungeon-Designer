@@ -297,14 +297,19 @@ class DungeonDesigner:
         ttk.Button(self.fileoptions_frame, text="Load", 
                     command=self.load_file, width=6).grid(column=1, row=1, 
                                             sticky=(N,W,E,S), padx=2, pady=2)
+        self.root.bind('l', self.load_file)
+
         #save file button door button
         ttk.Button(self.fileoptions_frame, text="Save", 
                     command=self.save_file, width=6).grid(column=2, row=1, 
                                             sticky=(N,W,E,S), padx=2, pady=2)
+        self.root.bind('s', self.save_file)
+
         #export file button door button
         ttk.Button(self.fileoptions_frame, text="Export", 
                     command=self.export_file, width=6).grid(column=3, row=1,
                                             sticky=(N,W,E,S), padx=2, pady=2)
+        self.root.bind('e', self.export_file)
         
 
         #set material dropdown values
