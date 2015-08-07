@@ -692,7 +692,11 @@ class DungeonDesigner:
                 self.canvas.delete(self.first_click_circle)
             #if this is the 2nd click for making a door
             elif self.first_click:
-                if self.on_walls(( self.point1, near_gridpoint )) != None:
+                if (self.point1[0] == near_gridpoint[0]) and (
+                                        self.point1[1] == near_gridpoint[1]):
+                    self.write_to_console('size of door added is 0. '+
+                                                            'No door added')
+                elif self.on_walls(( self.point1, near_gridpoint )) != None:
                     self.doors.append([self.canvas.create_line(
                                     min(self.point1[0], near_gridpoint[0]), 
                                     min(self.point1[1], near_gridpoint[1]), 
@@ -715,7 +719,6 @@ class DungeonDesigner:
                     self.write_to_console("the door specidfied doesn't lie " +
                                             " on the common wall of 2 rooms." +
                                             " No door added.")
-                    self.console.see(END)
                 self.first_click = False
                 self.canvas.delete(self.first_click_circle)
             #if this is the 1st click for making a door
